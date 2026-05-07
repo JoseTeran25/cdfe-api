@@ -1,0 +1,130 @@
+// This is your Prisma schema file
+// CdFe App — Comunidad de Fe Sur
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  DIRECTOR
+  MUSICO
+  VOCALISTA
+}
+
+enum SongStatus {
+  ACTIVA
+  PENDIENTE
+}
+
+enum ServiceType {
+  DOMINGO
+  MIERCOLES
+}
+
+enum Instrument {
+  GUITARRA
+  BAJO
+  BATERIA
+  TECLADO
+  PIANO
+  VIOLIN
+  TROMPETA
+  VOZ_PRINCIPAL
+  VOZ_SECUNDARIA
+  OTRO
+}
+
+// ─── Models ─────────────────────────────────────────────────────────────────
+
+model User {
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  password   String
+  role       Role     @default(MUSICO)
+  avatarUrl  String?
+  instrument Instrument?
+
+  // Relations
+  services   UserService[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Song {
+  id           String     @id @default(cuid())
+  title        String
+  artist       String
+  key          String     // Tono: Am, G, C#, etc.
+  lyrics       String?    // Markdown / ChordPro format
+  bpm          Int?
+  status       SongStatus @default(PENDIENTE)
+  sequenceUrl  Json?      // Array of TrackItem: { name, url, type }
+  tags         String[]   @default([])
+
+  // Relations
+  services     ServiceSong[]
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("songs")
+}
+
+model Service {
+  id        String      @id @default(cuid())
+  date      DateTime
+  type      ServiceType
+  title     String?
+  notes     String?
+
+  // Relations
+  setlist   ServiceSong[]
+  team      UserService[]
+
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@map("services")
+}
+
+/// Pivot table: Service ↔ Song (setlist with order)
+model ServiceSong {
+  id        String  @id @default(cuid())
+  order     Int     @default(0)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  songId    String
+  song      Song    @relation(fields: [songId], references: [id], onDelete: Restrict)
+
+  @@unique([serviceId, songId])
+  @@map("service_songs")
+}
+
+/// Pivot table: Service ↔ User (team assignment with instrument)
+model UserService {
+  id         String     @id @default(cuid())
+  instrument Instrument
+
+  userId     String
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  serviceId  String
+  service    Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, serviceId])
+  @@map("user_services")
+}
