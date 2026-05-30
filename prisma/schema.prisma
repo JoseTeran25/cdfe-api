@@ -24,6 +24,11 @@ enum SongStatus {
   PENDIENTE
 }
 
+enum SongCategory {
+  ALABANZA
+  ADORACION
+}
+
 enum ServiceType {
   DOMINGO
   MIERCOLES
@@ -70,6 +75,7 @@ model Song {
   lyrics       String?    // Markdown / ChordPro format
   bpm          Int?
   status       SongStatus @default(PENDIENTE)
+  category     SongCategory? //Alabanza o Adoracion
   sequenceUrl  Json?      // Array of TrackItem: { name, url, type }
   tags         String[]   @default([])
 
