@@ -17,6 +17,7 @@ enum Role {
   DIRECTOR
   MUSICO
   VOCALISTA
+  MULTIMEDIA
 }
 
 enum SongStatus {
@@ -44,6 +45,7 @@ enum Instrument {
   TROMPETA
   VOZ_PRINCIPAL
   VOZ_SECUNDARIA
+  MEDIOS
   OTRO
 }
 
