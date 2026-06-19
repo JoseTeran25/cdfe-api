@@ -17,11 +17,17 @@ enum Role {
   DIRECTOR
   MUSICO
   VOCALISTA
+  MULTIMEDIA
 }
 
 enum SongStatus {
   ACTIVA
   PENDIENTE
+}
+
+enum SongCategory {
+  ALABANZA
+  ADORACION
 }
 
 enum ServiceType {
@@ -39,6 +45,7 @@ enum Instrument {
   TROMPETA
   VOZ_PRINCIPAL
   VOZ_SECUNDARIA
+  MEDIOS
   OTRO
 }
 
@@ -70,6 +77,7 @@ model Song {
   lyrics       String?    // Markdown / ChordPro format
   bpm          Int?
   status       SongStatus @default(PENDIENTE)
+  category     SongCategory? //Alabanza o Adoracion
   sequenceUrl  Json?      // Array of TrackItem: { name, url, type }
   tags         String[]   @default([])
 

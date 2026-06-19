@@ -10,7 +10,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { SongStatus } from '@prisma/client';
+import { SongStatus, SongCategory } from '@prisma/client';
 import { Type } from 'class-transformer';
 
 export class TrackItemDto {
@@ -56,6 +56,14 @@ export class CreateSongDto {
   @IsEnum(SongStatus)
   @IsOptional()
   status?: SongStatus;
+
+  @ApiPropertyOptional({
+    enum: SongCategory,
+    description: 'Categoria: ALABANZA o ADORACION',
+  })
+  @IsEnum(SongCategory)
+  @IsOptional()
+  category?: SongCategory;
 
   @ApiPropertyOptional({
     type: [TrackItemDto],
