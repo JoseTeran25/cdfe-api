@@ -49,6 +49,12 @@ enum Instrument {
   OTRO
 }
 
+enum ContactMethod {
+  WHATSAPP
+  LLAMADA
+  MENSAJE_TEXTO
+}
+
 // ─── Models ─────────────────────────────────────────────────────────────────
 
 model User {
@@ -135,4 +141,20 @@ model UserService {
 
   @@unique([userId, serviceId])
   @@map("user_services")
+}
+
+/// Solicitudes de acompañamiento enviadas desde la landing "No estás solo"
+model SupportRequest {
+  id            String        @id @default(cuid())
+  name          String
+  contact       String
+  contactMethod ContactMethod @default(WHATSAPP)
+  situation     String?
+  consent       Boolean       @default(false)
+  contacted     Boolean       @default(false)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("support_requests")
 }
