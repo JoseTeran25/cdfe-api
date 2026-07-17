@@ -55,6 +55,24 @@ enum ContactMethod {
   MENSAJE_TEXTO
 }
 
+enum ContactSource {
+  SUPPORT_REQUEST
+  TEAM
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
 // ─── Models ─────────────────────────────────────────────────────────────────
 
 model User {
@@ -65,6 +83,7 @@ model User {
   role       Role     @default(MUSICO)
   avatarUrl  String?
   instrument Instrument?
+  phone      String?  @unique
 
   // Relations
   services   UserService[]
@@ -157,4 +176,37 @@ model SupportRequest {
   updatedAt     DateTime      @updatedAt
 
   @@map("support_requests")
+}
+
+/// Hilo de conversación de WhatsApp (vía Nexo) con un contacto registrado
+/// (solicitud de "No estás solo" o miembro del equipo)
+model Conversation {
+  id            String        @id @default(cuid())
+  phone         String        @unique // normalizado: solo dígitos
+  contactName   String
+  contactSource ContactSource
+  lastMessageAt DateTime?
+
+  messages      Message[]
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String            @id @default(cuid())
+  direction      MessageDirection
+  content        String
+  status         MessageStatus     @default(PENDING)
+  externalId     String?           @unique // id del mensaje en Nexo
+
+  conversationId String
+  conversation   Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime          @default(now())
+
+  @@index([conversationId])
+  @@map("messages")
 }

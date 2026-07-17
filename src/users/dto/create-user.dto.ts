@@ -30,4 +30,9 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   avatarUrl?: string;
+
+  @ApiPropertyOptional({ example: '0987654321', description: 'Para mensajería de WhatsApp vía Nexo' })
+  @IsString()
+  @IsOptional()
+  phone?: string;
 }

@@ -35,4 +35,14 @@ export class SupportRequestsService {
 
     return this.prisma.supportRequest.update({ where: { id }, data: dto });
   }
+
+  async remove(id: string) {
+    const exists = await this.prisma.supportRequest.findUnique({ where: { id } });
+    if (!exists) {
+      throw new NotFoundException(`Solicitud con id "${id}" no encontrada`);
+    }
+
+    await this.prisma.supportRequest.delete({ where: { id } });
+    return { message: 'Solicitud eliminada correctamente' };
+  }
 }

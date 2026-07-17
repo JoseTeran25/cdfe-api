@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { SupportRequestsService } from './support-requests.service';
 import { CreateSupportRequestDto } from './dto/create-support-request.dto';
@@ -29,5 +29,14 @@ export class SupportRequestsController {
   @ApiResponse({ status: 404, description: 'Solicitud no encontrada' })
   update(@Param('id') id: string, @Body() dto: UpdateSupportRequestDto) {
     return this.supportRequestsService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Eliminar una solicitud de acompañamiento' })
+  @ApiParam({ name: 'id', description: 'ID de la solicitud' })
+  @ApiResponse({ status: 404, description: 'Solicitud no encontrada' })
+  remove(@Param('id') id: string) {
+    return this.supportRequestsService.remove(id);
   }
 }
