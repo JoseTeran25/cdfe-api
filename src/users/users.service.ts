@@ -16,6 +16,7 @@ const USER_SELECT = {
   role: true,
   instrument: true,
   avatarUrl: true,
+  phone: true,
   createdAt: true,
   updatedAt: true,
 };
@@ -31,6 +32,13 @@ export class UsersService {
     });
     if (exists) {
       throw new ConflictException(`El email "${dto.email}" ya está registrado`);
+    }
+
+    if (dto.phone) {
+      const phoneTaken = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+      if (phoneTaken) {
+        throw new ConflictException(`El teléfono "${dto.phone}" ya está registrado`);
+      }
     }
 
     const hashed = await bcrypt.hash(dto.password, 10);
@@ -81,6 +89,15 @@ export class UsersService {
       });
       if (exists) {
         throw new ConflictException(`El email "${dto.email}" ya está en uso`);
+      }
+    }
+
+    if (dto.phone) {
+      const phoneTaken = await this.prisma.user.findFirst({
+        where: { phone: dto.phone, NOT: { id } },
+      });
+      if (phoneTaken) {
+        throw new ConflictException(`El teléfono "${dto.phone}" ya está en uso`);
       }
     }
 

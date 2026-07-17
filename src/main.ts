@@ -4,7 +4,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true expone request.rawBody (Buffer) para verificar la firma
+  // del webhook de Nexo, sin afectar el parseo normal de JSON del resto de rutas.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   // Global prefix
   app.setGlobalPrefix('api/v1');
