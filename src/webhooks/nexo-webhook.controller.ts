@@ -59,8 +59,13 @@ export class NexoWebhookController {
     const secret = this.config.get<string>('NEXO_WEBHOOK_SECRET');
     if (!secret) return true; // aún no configurado en el dashboard de Nexo
 
+    // Nexo firma con la convención estilo GitHub: header X-Hub-Signature-256 = "sha256=<hex>"
     const signature =
-      req.headers['x-nexo-signature'] ?? req.headers['x-webhook-signature'] ?? req.headers['x-signature'];
+      req.headers['x-hub-signature-256'] ??
+      req.headers['x-hub-signature'] ??
+      req.headers['x-nexo-signature'] ??
+      req.headers['x-webhook-signature'] ??
+      req.headers['x-signature'];
 
     if (!signature || !req.rawBody) return false;
 
@@ -81,6 +86,12 @@ export class NexoWebhookController {
       return;
     }
 
+    if (parsed.fromMe) {
+      // Mensaje enviado desde el número conectado (ej. respondido manualmente desde el celular),
+      // no un mensaje entrante real del contacto — se ignora para no duplicar/confundir el hilo.
+      return;
+    }
+
     const registered = await this.conversations.isRegisteredPhone(parsed.from);
     if (!registered) {
       this.logger.log(`Mensaje entrante descartado (número no registrado): ${parsed.from}`);
@@ -93,10 +104,12 @@ export class NexoWebhookController {
       const contact = await this.resolveContactName(phone);
       conversation = await this.conversations.findOrCreateByPhone(
         parsed.from,
-        contact?.name ?? phone,
+        contact?.name ?? parsed.pushName ?? phone,
         contact?.source ?? ContactSource.SUPPORT_REQUEST,
       );
     }
+
+    const createdAt = parsed.timestamp ?? new Date();
 
     await this.prisma.$transaction([
       this.prisma.message.create({
@@ -106,11 +119,12 @@ export class NexoWebhookController {
           content: parsed.content,
           status: MessageStatus.DELIVERED,
           externalId: parsed.externalId,
+          createdAt,
         },
       }),
       this.prisma.conversation.update({
         where: { id: conversation.id },
-        data: { lastMessageAt: new Date() },
+        data: { lastMessageAt: createdAt },
       }),
     ]);
   }
