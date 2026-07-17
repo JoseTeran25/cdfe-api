@@ -4,6 +4,9 @@ export interface ParsedInboundMessage {
   from: string;
   content: string;
   externalId?: string;
+  fromMe: boolean;
+  timestamp?: Date;
+  pushName?: string;
 }
 
 export interface ParsedStatusUpdate {
@@ -11,22 +14,30 @@ export interface ParsedStatusUpdate {
   status: string;
 }
 
-/**
- * El payload exacto de Nexo aún no está confirmado (webhook sin configurar todavía),
- * así que probamos varias formas comunes de anidar los campos. Si Nexo usa nombres
- * distintos, ajustar aquí una vez se vea un payload real.
- */
-export function parseInboundMessage(body: any): ParsedInboundMessage | null {
-  const data = body?.data ?? body?.message ?? body ?? {};
-  const from = data.from ?? data.sender ?? data.phone ?? data.number;
-  const content = data.content ?? data.text ?? data.body ?? data.message;
-  if (!from || typeof content !== 'string') return null;
+/** "593999999999@s.whatsapp.net" → "593999999999" (también cubre @g.us de grupos, que luego se descarta por no estar registrado). */
+function stripWhatsappSuffix(jid: string): string {
+  return jid.split('@')[0];
+}
 
-  const externalId = data.id ?? data.messageId ?? data.externalId;
+/** Forma real del evento `message_received` de Nexo. */
+export function parseInboundMessage(body: any): ParsedInboundMessage | null {
+  const data = body?.data;
+  if (!data || typeof data.from !== 'string') return null;
+
+  const content: string =
+    typeof data.body === 'string' && data.body.length > 0
+      ? data.body
+      : data.hasMedia
+        ? '[Multimedia]'
+        : '';
+
   return {
-    from: String(from),
+    from: stripWhatsappSuffix(data.from),
     content,
-    externalId: externalId ? String(externalId) : undefined,
+    externalId: data.messageId ? String(data.messageId) : undefined,
+    fromMe: Boolean(data.fromMe),
+    timestamp: typeof data.timestamp === 'number' ? new Date(data.timestamp * 1000) : undefined,
+    pushName: typeof data.pushName === 'string' ? data.pushName : undefined,
   };
 }
 
