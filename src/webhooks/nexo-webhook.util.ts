@@ -2,6 +2,7 @@ import { MessageStatus } from '@prisma/client';
 
 export interface ParsedInboundMessage {
   from: string;
+  lid: string | null; // presente cuando el contacto tiene privacidad de número activada
   content: string;
   externalId?: string;
   fromMe: boolean;
@@ -43,16 +44,18 @@ export function parseInboundMessage(body: any): ParsedInboundMessage | null {
         : '';
 
   const senderPn = typeof data.senderPn === 'string' && data.senderPn.length > 0 ? data.senderPn : null;
+  const isLid = data.from.endsWith('@lid');
 
   return {
     from: senderPn ?? stripWhatsappSuffix(data.from),
+    lid: isLid ? stripWhatsappSuffix(data.from) : null,
     content,
     externalId: data.messageId ? String(data.messageId) : undefined,
     fromMe: Boolean(data.fromMe),
     timestamp: typeof data.timestamp === 'number' ? new Date(data.timestamp * 1000) : undefined,
     pushName: typeof data.pushName === 'string' ? data.pushName : undefined,
     isGroup: Boolean(data.participant) || data.from.endsWith('@g.us'),
-    resolved: senderPn !== null || !data.from.endsWith('@lid'),
+    resolved: senderPn !== null || !isLid,
   };
 }
 

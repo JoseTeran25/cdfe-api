@@ -118,7 +118,15 @@ export class NexoWebhookController {
         parsed.from,
         contact?.name ?? parsed.pushName ?? phone,
         contact?.source ?? ContactSource.SUPPORT_REQUEST,
+        parsed.lid,
       );
+    } else if (parsed.lid && conversation.lid !== parsed.lid) {
+      // El contacto tiene privacidad de número activada — guardamos el LID como alias
+      // para poder correlacionar los eventos message_status más adelante (ver abajo).
+      conversation = await this.prisma.conversation.update({
+        where: { id: conversation.id },
+        data: { lid: parsed.lid },
+      });
     }
 
     const createdAt = parsed.timestamp ?? new Date();
@@ -136,7 +144,7 @@ export class NexoWebhookController {
       }),
       this.prisma.conversation.update({
         where: { id: conversation.id },
-        data: { lastMessageAt: createdAt },
+        data: { lastMessageAt: createdAt, unreadCount: { increment: 1 } },
       }),
     ]);
   }
@@ -183,8 +191,14 @@ export class NexoWebhookController {
       return;
     }
 
-    const phone = normalizePhone(stripWhatsappSuffix(parsed.chatJid));
-    const conversation = await this.prisma.conversation.findUnique({ where: { phone } });
+    // chatJid puede venir como el número real (@s.whatsapp.net) o como el LID de privacidad
+    // (@lid) — Nexo no resuelve el LID en este evento, solo en message_received. Probamos
+    // ambos: primero por teléfono, si no por el LID guardado como alias.
+    const rawId = stripWhatsappSuffix(parsed.chatJid);
+    const phone = normalizePhone(rawId);
+    const conversation =
+      (await this.prisma.conversation.findUnique({ where: { phone } })) ??
+      (await this.prisma.conversation.findUnique({ where: { lid: rawId } }));
     if (!conversation) {
       this.logger.warn(`Status para conversación no encontrada (${phone}): ${parsed.externalId}`);
       return;
