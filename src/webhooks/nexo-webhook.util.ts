@@ -17,9 +17,13 @@ export interface ParsedStatusUpdate {
   chatJid?: string;
 }
 
-/** "593999999999@s.whatsapp.net" → "593999999999" (también cubre @g.us de grupos, que luego se descarta por no estar registrado). */
+/**
+ * "593999999999@s.whatsapp.net" → "593999999999" (también cubre @g.us de grupos, que luego
+ * se descarta por no estar registrado). Además quita el sufijo de dispositivo multi-device
+ * de WhatsApp, ej. "80221516603521:61@lid" → "80221516603521".
+ */
 export function stripWhatsappSuffix(jid: string): string {
-  return jid.split('@')[0];
+  return jid.split('@')[0].split(':')[0];
 }
 
 /**
