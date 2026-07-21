@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { ConversationsService } from './conversations.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
@@ -40,5 +40,12 @@ export class ConversationsController {
   @ApiParam({ name: 'id', description: 'ID de la conversación' })
   sendMessage(@Param('id') id: string, @Body() dto: SendMessageDto) {
     return this.conversationsService.sendMessage(id, dto);
+  }
+
+  @Patch(':id/read')
+  @ApiOperation({ summary: 'Marcar una conversación como leída (resetea el contador de no leídos)' })
+  @ApiParam({ name: 'id', description: 'ID de la conversación' })
+  markRead(@Param('id') id: string) {
+    return this.conversationsService.markRead(id);
   }
 }

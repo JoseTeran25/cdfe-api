@@ -183,9 +183,11 @@ model SupportRequest {
 model Conversation {
   id            String        @id @default(cuid())
   phone         String        @unique // normalizado: solo dígitos
+  lid           String?       @unique // alias del LID de privacidad de WhatsApp, si aplica (ver message_status)
   contactName   String
   contactSource ContactSource
   lastMessageAt DateTime?
+  unreadCount   Int           @default(0)
 
   messages      Message[]
 

@@ -104,14 +104,29 @@ export class ConversationsService {
     );
   }
 
-  async findOrCreateByPhone(phone: string, contactName: string, contactSource: ContactSource) {
+  async findOrCreateByPhone(
+    phone: string,
+    contactName: string,
+    contactSource: ContactSource,
+    lid?: string | null,
+  ) {
     const normalized = normalizePhone(phone);
     const existing = await this.prisma.conversation.findUnique({ where: { phone: normalized } });
-    if (existing) return existing;
+    if (existing) {
+      if (lid && existing.lid !== lid) {
+        return this.prisma.conversation.update({ where: { id: existing.id }, data: { lid } });
+      }
+      return existing;
+    }
 
     return this.prisma.conversation.create({
-      data: { phone: normalized, contactName, contactSource },
+      data: { phone: normalized, contactName, contactSource, lid: lid ?? undefined },
     });
+  }
+
+  async markRead(id: string) {
+    await this.findOne(id);
+    return this.prisma.conversation.update({ where: { id }, data: { unreadCount: 0 } });
   }
 
   async create(dto: CreateConversationDto) {
