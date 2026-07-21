@@ -17,7 +17,7 @@ import { ContactSource, MessageDirection, MessageStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConversationsService } from '../conversations/conversations.service';
 import { normalizePhone } from '../common/phone.util';
-import { mapNexoStatus, parseInboundMessage, parseStatusUpdate } from './nexo-webhook.util';
+import { mapNexoStatus, parseInboundMessage, parseStatusUpdate, stripWhatsappSuffix } from './nexo-webhook.util';
 
 @ApiExcludeController()
 @Controller('webhooks')
@@ -92,6 +92,18 @@ export class NexoWebhookController {
       return;
     }
 
+    if (parsed.isGroup) {
+      // No soportamos chats grupales, solo conversaciones 1:1 con contactos registrados.
+      return;
+    }
+
+    if (!parsed.resolved) {
+      // `from` es un @lid de privacidad y Nexo no pudo resolver el número real (senderPn ausente).
+      // No hay forma de saber a qué contacto pertenece, así que se descarta.
+      this.logger.warn(`Mensaje entrante con LID irresoluble, descartado: ${parsed.from}`);
+      return;
+    }
+
     const registered = await this.conversations.isRegisteredPhone(parsed.from);
     if (!registered) {
       this.logger.log(`Mensaje entrante descartado (número no registrado): ${parsed.from}`);
@@ -157,8 +169,39 @@ export class NexoWebhookController {
       return;
     }
 
-    await this.prisma.message
-      .updateMany({ where: { externalId: parsed.externalId }, data: { status } })
-      .catch(err => this.logger.error(`No se pudo actualizar el estado del mensaje: ${err}`));
+    const updated = await this.prisma.message.updateMany({
+      where: { externalId: parsed.externalId },
+      data: { status },
+    });
+    if (updated.count > 0) return;
+
+    // Primera vez que vemos este id real de WhatsApp para este mensaje: al enviar no lo
+    // conocíamos todavía (ver ConversationsService.sendMessage), así que se correlaciona
+    // con el OUTBOUND más reciente sin externalId resuelto en esa conversación.
+    if (!parsed.chatJid) {
+      this.logger.warn(`Status sin match y sin chatJid para correlacionar: ${parsed.externalId}`);
+      return;
+    }
+
+    const phone = normalizePhone(stripWhatsappSuffix(parsed.chatJid));
+    const conversation = await this.prisma.conversation.findUnique({ where: { phone } });
+    if (!conversation) {
+      this.logger.warn(`Status para conversación no encontrada (${phone}): ${parsed.externalId}`);
+      return;
+    }
+
+    const pending = await this.prisma.message.findFirst({
+      where: { conversationId: conversation.id, direction: MessageDirection.OUTBOUND, externalId: null },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!pending) {
+      this.logger.warn(`No hay mensaje saliente sin resolver para correlacionar en ${phone}`);
+      return;
+    }
+
+    await this.prisma.message.update({
+      where: { id: pending.id },
+      data: { externalId: parsed.externalId, status },
+    });
   }
 }

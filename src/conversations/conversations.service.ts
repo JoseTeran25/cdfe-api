@@ -134,7 +134,11 @@ export class ConversationsService {
   async sendMessage(conversationId: string, dto: SendMessageDto) {
     const conversation = await this.findOne(conversationId);
 
-    const result = await this.nexo.sendMessage(conversation.phone, dto.content);
+    // El id que Nexo devuelve aquí es su id interno de cola, no el id real de WhatsApp
+    // (ese solo se conoce después, de forma asíncrona, vía el webhook message_status).
+    // Por eso no se guarda como externalId — el webhook lo correlaciona por conversación
+    // al primer mensaje OUTBOUND sin externalId resuelto.
+    await this.nexo.sendMessage(conversation.phone, dto.content);
 
     const [message] = await this.prisma.$transaction([
       this.prisma.message.create({
@@ -143,7 +147,6 @@ export class ConversationsService {
           direction: MessageDirection.OUTBOUND,
           content: dto.content,
           status: MessageStatus.SENT,
-          externalId: result.externalId,
         },
       }),
       this.prisma.conversation.update({
