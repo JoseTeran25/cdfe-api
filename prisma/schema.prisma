@@ -105,6 +105,8 @@ model Song {
   category     SongCategory? //Alabanza o Adoracion
   sequenceUrl  Json?      // Array of TrackItem: { name, url, type }
   tags         String[]   @default([])
+  referenceUrl String?    // Link de referencia: YouTube, Drive, etc.
+  notes        String?    // Notas adicionales sobre la canción
 
   // Relations
   services     ServiceSong[]
