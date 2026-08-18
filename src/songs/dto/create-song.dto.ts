@@ -80,4 +80,14 @@ export class CreateSongDto {
   @IsString({ each: true })
   @IsOptional()
   tags?: string[];
+
+  @ApiPropertyOptional({ example: 'https://youtube.com/watch?v=...', description: 'Link de referencia: YouTube, Drive, etc.' })
+  @IsString()
+  @IsOptional()
+  referenceUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Notas adicionales sobre la canción' })
+  @IsString()
+  @IsOptional()
+  notes?: string;
 }
