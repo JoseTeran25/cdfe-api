@@ -20,7 +20,7 @@ import {
 import { SongsService } from './songs.service';
 import { CreateSongDto } from './dto/create-song.dto';
 import { UpdateSongDto } from './dto/update-song.dto';
-import { SongStatus } from '@prisma/client';
+import { SongStatus, ServiceType } from '@prisma/client';
 
 @ApiTags('🎵 Canciones')
 @Controller('songs')
@@ -49,6 +49,23 @@ export class SongsController {
   @ApiOperation({ summary: 'Listar canciones pendientes (por sacar)' })
   findPending() {
     return this.songsService.findPending();
+  }
+
+  @Get('top-played')
+  @ApiOperation({ summary: 'Top canciones más tocadas en servicios' })
+  @ApiQuery({ name: 'year', required: false, type: Number, description: 'Filtrar por año (ej. 2025)' })
+  @ApiQuery({ name: 'serviceType', required: false, enum: ServiceType, description: 'Filtrar por tipo de servicio' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Límite de resultados (default 10)' })
+  getTopPlayed(
+    @Query('year') year?: string,
+    @Query('serviceType') serviceType?: ServiceType,
+    @Query('limit') limit?: string,
+  ) {
+    return this.songsService.getTopPlayed(
+      year ? parseInt(year, 10) : undefined,
+      serviceType,
+      limit ? parseInt(limit, 10) : 10,
+    );
   }
 
   @Get(':id')
