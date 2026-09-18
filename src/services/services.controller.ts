@@ -8,6 +8,7 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,14 +16,19 @@ import {
   ApiParam,
   ApiResponse,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { AddSongToSetlistDto } from './dto/add-song-to-setlist.dto';
 import { AddTeamMemberDto } from './dto/add-team-member.dto';
+import { NotifyTeamDto } from './dto/notify-team.dto';
 import { IsArray, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
 class ReorderSetlistDto {
   @ApiProperty({ type: [String], example: ['id1', 'id2', 'id3'] })
@@ -136,5 +142,17 @@ export class ServicesController {
     @Param('userId') userId: string,
   ) {
     return this.servicesService.removeTeamMember(id, userId);
+  }
+
+  // ─── Notificaciones ───────────────────────────────────
+
+  @Post(':id/notify-team')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Notificar por WhatsApp a todo el equipo del servicio (solo admin)' })
+  @ApiParam({ name: 'id', description: 'ID del servicio' })
+  notifyTeam(@Param('id') id: string, @Body() dto: NotifyTeamDto) {
+    return this.servicesService.notifyTeam(id, dto.serviceUrl);
   }
 }

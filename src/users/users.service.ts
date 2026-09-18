@@ -52,6 +52,16 @@ export class UsersService {
     });
   }
 
+  /** Uso exclusivo de AuthService — incluye el hash de password, nunca exponer vía controller. */
+  async findByEmailWithPassword(email: string) {
+    return this.prisma.user.findUnique({ where: { email } });
+  }
+
+  /** Lookup liviano (sin relaciones) para JwtStrategy — se ejecuta en cada request autenticado. */
+  async findByIdSafe(id: string) {
+    return this.prisma.user.findUnique({ where: { id }, select: USER_SELECT });
+  }
+
   async findAll() {
     return this.prisma.user.findMany({
       select: USER_SELECT,

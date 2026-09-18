@@ -54,15 +54,18 @@ export class SongsController {
   @Get('top-played')
   @ApiOperation({ summary: 'Top canciones más tocadas en servicios' })
   @ApiQuery({ name: 'year', required: false, type: Number, description: 'Filtrar por año (ej. 2025)' })
+  @ApiQuery({ name: 'month', required: false, type: Number, description: 'Filtrar por mes (1-12), requiere year' })
   @ApiQuery({ name: 'serviceType', required: false, enum: ServiceType, description: 'Filtrar por tipo de servicio' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Límite de resultados (default 10)' })
   getTopPlayed(
     @Query('year') year?: string,
+    @Query('month') month?: string,
     @Query('serviceType') serviceType?: ServiceType,
     @Query('limit') limit?: string,
   ) {
     return this.songsService.getTopPlayed(
       year ? parseInt(year, 10) : undefined,
+      month ? parseInt(month, 10) : undefined,
       serviceType,
       limit ? parseInt(limit, 10) : 10,
     );
