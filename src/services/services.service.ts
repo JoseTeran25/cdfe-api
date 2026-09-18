@@ -4,6 +4,8 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ConversationsService } from '../conversations/conversations.service';
+import { ContactSource, ServiceType } from '@prisma/client';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { AddSongToSetlistDto } from './dto/add-song-to-setlist.dto';
@@ -25,15 +27,34 @@ const SERVICE_INCLUDE = {
           role: true,
           instrument: true,
           avatarUrl: true,
+          phone: true,
         },
       },
     },
   },
 };
 
+const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
+  DOMINGO: 'Domingo',
+  MIERCOLES: 'Miércoles',
+  JOVENES: 'Jóvenes',
+};
+
+export interface NotifyResult {
+  userId: string;
+  name: string;
+  status: 'sent' | 'skipped' | 'failed';
+  reason?: string;
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 @Injectable()
 export class ServicesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly conversationsService: ConversationsService,
+  ) {}
 
   // ─── CRUD Base ──────────────────────────────────────────
 
@@ -213,5 +234,55 @@ export class ServicesService {
     });
 
     return this.findOne(serviceId);
+  }
+
+  // ─── Notificaciones ─────────────────────────────────────
+
+  async notifyTeam(serviceId: string, serviceUrl: string) {
+    const service = await this.findOne(serviceId);
+
+    const fecha = new Intl.DateTimeFormat('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date(service.date));
+
+    const tipo = SERVICE_TYPE_LABELS[service.type];
+
+    const results: NotifyResult[] = [];
+
+    for (const member of service.team) {
+      const { user } = member;
+      if (!user.phone) {
+        results.push({ userId: user.id, name: user.name, status: 'skipped', reason: 'sin teléfono' });
+        continue;
+      }
+
+      const content = `🎶 *WorshipCdfe Bot*\n\n¡Hola ${user.name}! 👋\nSe creó un nuevo servicio:\n\n📅 *${tipo} — ${fecha}*\n\nRevisa el setlist y los detalles aquí:\n${serviceUrl}\n\n¡Nos vemos en el servicio! 🙌`;
+
+      try {
+        await this.conversationsService.create({
+          phone: user.phone,
+          contactName: user.name,
+          contactSource: ContactSource.TEAM,
+          initialMessage: content,
+        });
+        results.push({ userId: user.id, name: user.name, status: 'sent' });
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'Error desconocido';
+        results.push({ userId: user.id, name: user.name, status: 'failed', reason });
+      }
+
+      await sleep(300);
+    }
+
+    return {
+      total: results.length,
+      sent: results.filter((r) => r.status === 'sent').length,
+      skipped: results.filter((r) => r.status === 'skipped').length,
+      failed: results.filter((r) => r.status === 'failed').length,
+      results,
+    };
   }
 }

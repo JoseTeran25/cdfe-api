@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { SongsModule } from './songs/songs.module';
 import { ServicesModule } from './services/services.module';
@@ -17,6 +18,7 @@ import { NexoWebhookModule } from './webhooks/nexo-webhook.module';
       envFilePath: '.env',
     }),
     PrismaModule,
+    AuthModule,
     UsersModule,
     SongsModule,
     ServicesModule,

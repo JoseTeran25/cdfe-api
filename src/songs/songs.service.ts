@@ -80,12 +80,17 @@ export class SongsService {
 
   async getTopPlayed(
     year?: number,
+    month?: number,
     serviceType?: ServiceType,
     limit = 10,
   ) {
     // Filtros sobre el servicio relacionado
     const serviceWhere: Record<string, unknown> = {};
-    if (year) {
+    if (year && month) {
+      const start = new Date(Date.UTC(year, month - 1, 1));
+      const end = new Date(Date.UTC(year, month, 1));
+      serviceWhere.date = { gte: start, lt: end };
+    } else if (year) {
       serviceWhere.date = {
         gte: new Date(`${year}-01-01T00:00:00.000Z`),
         lte: new Date(`${year}-12-31T23:59:59.999Z`),

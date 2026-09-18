@@ -33,6 +33,7 @@ enum SongCategory {
 enum ServiceType {
   DOMINGO
   MIERCOLES
+  JOVENES
 }
 
 enum Instrument {
