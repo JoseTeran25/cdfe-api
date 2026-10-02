@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { ConversationsService } from '../conversations/conversations.service';
 import { RosterService } from '../roster/roster.service';
+import { APP_TIMEZONE } from '../common/date.util';
 import { ContactSource, ServiceType } from '@prisma/client';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
@@ -244,6 +245,7 @@ export class ServicesService {
     const service = await this.findOne(serviceId);
 
     const fecha = new Intl.DateTimeFormat('es-ES', {
+      timeZone: APP_TIMEZONE,
       weekday: 'long',
       day: 'numeric',
       month: 'long',

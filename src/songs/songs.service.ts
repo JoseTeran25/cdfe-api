@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateSongDto } from './dto/create-song.dto';
 import { UpdateSongDto } from './dto/update-song.dto';
 import { SongStatus, ServiceType } from '@prisma/client';
+import { localMidnightToUtc } from '../common/date.util';
 
 @Injectable()
 export class SongsService {
@@ -86,15 +87,11 @@ export class SongsService {
   ) {
     // Filtros sobre el servicio relacionado
     const serviceWhere: Record<string, unknown> = {};
+    // Límites en hora local: un servicio del miércoles 31 a las 19:30 pertenece a ese mes, aunque en UTC ya sea el siguiente
     if (year && month) {
-      const start = new Date(Date.UTC(year, month - 1, 1));
-      const end = new Date(Date.UTC(year, month, 1));
-      serviceWhere.date = { gte: start, lt: end };
+      serviceWhere.date = { gte: localMidnightToUtc(year, month), lt: localMidnightToUtc(year, month + 1) };
     } else if (year) {
-      serviceWhere.date = {
-        gte: new Date(`${year}-01-01T00:00:00.000Z`),
-        lte: new Date(`${year}-12-31T23:59:59.999Z`),
-      };
+      serviceWhere.date = { gte: localMidnightToUtc(year, 1), lt: localMidnightToUtc(year + 1, 1) };
     }
     if (serviceType) {
       serviceWhere.type = serviceType;
