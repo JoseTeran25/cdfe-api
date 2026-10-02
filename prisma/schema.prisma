@@ -48,6 +48,30 @@ enum Instrument {
   VOZ_SECUNDARIA
   MEDIOS
   OTRO
+  GUITARRA_ELECTRICA
+  GUITARRA_ACUSTICA
+  VOZ_HOMBRE
+  VOZ_MUJER
+  SONIDO
+  LETRAS
+  APOYO_MULTIMEDIA
+  ORACION
+}
+
+/// Columnas de la programación mensual (calendario del equipo)
+enum RosterRole {
+  BATERIA
+  BAJO
+  GUITARRA_ELECTRICA
+  GUITARRA_ACUSTICA_1
+  GUITARRA_ACUSTICA_2
+  PIANO
+  VOCES_HOMBRES
+  VOCES_MUJERES
+  SONIDO
+  LETRAS
+  APOYO_MULTIMEDIA
+  ORACION
 }
 
 enum ContactMethod {
@@ -88,6 +112,7 @@ model User {
 
   // Relations
   services   UserService[]
+  roster     RosterAssignment[]
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -161,8 +186,26 @@ model UserService {
   serviceId  String
   service    Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, serviceId])
+  @@unique([userId, serviceId, instrument])
   @@map("user_services")
+}
+
+/// Programación mensual: quién toca qué en cada fecha, exista o no el servicio todavía.
+/// Al crear un servicio con esa fecha y tipo, estas asignaciones se copian a su equipo.
+model RosterAssignment {
+  id          String      @id @default(cuid())
+  date        String      // YYYY-MM-DD en la zona horaria de la iglesia (APP_TIMEZONE)
+  serviceType ServiceType
+  role        RosterRole
+
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime    @default(now())
+
+  @@unique([date, serviceType, role, userId])
+  @@index([date])
+  @@map("roster_assignments")
 }
 
 /// Solicitudes de acompañamiento enviadas desde la landing "No estás solo"

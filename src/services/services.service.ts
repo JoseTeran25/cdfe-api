@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConversationsService } from '../conversations/conversations.service';
+import { RosterService } from '../roster/roster.service';
 import { ContactSource, ServiceType } from '@prisma/client';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
@@ -54,6 +55,7 @@ export class ServicesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly conversationsService: ConversationsService,
+    private readonly rosterService: RosterService,
   ) {}
 
   // ─── CRUD Base ──────────────────────────────────────────
@@ -61,7 +63,7 @@ export class ServicesService {
   async create(dto: CreateServiceDto) {
     const { songIds, ...rest } = dto;
 
-    return this.prisma.service.create({
+    const service = await this.prisma.service.create({
       data: {
         ...rest,
         date: new Date(dto.date),
@@ -76,8 +78,10 @@ export class ServicesService {
             }
           : {}),
       },
-      include: SERVICE_INCLUDE,
     });
+
+    await this.rosterService.applyToServiceData(service.id, service.date, service.type);
+    return this.findOne(service.id);
   }
 
   async findAll() {
@@ -202,13 +206,13 @@ export class ServicesService {
     });
     if (!user) throw new NotFoundException(`Usuario "${dto.userId}" no encontrado`);
 
-    // Verificar si ya está en el equipo
+    // Una persona puede tener varios roles en el mismo servicio, pero no el mismo rol dos veces
     const already = await this.prisma.userService.findUnique({
       where: {
-        userId_serviceId: { userId: dto.userId, serviceId },
+        userId_serviceId_instrument: { userId: dto.userId, serviceId, instrument: dto.instrument },
       },
     });
-    if (already) throw new ConflictException('El miembro ya está asignado a este servicio');
+    if (already) throw new ConflictException('El miembro ya tiene ese rol en este servicio');
 
     await this.prisma.userService.create({
       data: {
@@ -221,17 +225,15 @@ export class ServicesService {
     return this.findOne(serviceId);
   }
 
-  async removeTeamMember(serviceId: string, userId: string) {
+  async removeTeamMember(serviceId: string, memberId: string) {
     await this.findOne(serviceId);
 
-    const entry = await this.prisma.userService.findUnique({
-      where: { userId_serviceId: { userId, serviceId } },
+    const entry = await this.prisma.userService.findFirst({
+      where: { id: memberId, serviceId },
     });
-    if (!entry) throw new NotFoundException('El miembro no está asignado a este servicio');
+    if (!entry) throw new NotFoundException('La asignación no existe en este servicio');
 
-    await this.prisma.userService.delete({
-      where: { userId_serviceId: { userId, serviceId } },
-    });
+    await this.prisma.userService.delete({ where: { id: memberId } });
 
     return this.findOne(serviceId);
   }
@@ -251,9 +253,9 @@ export class ServicesService {
     const tipo = SERVICE_TYPE_LABELS[service.type];
 
     const results: NotifyResult[] = [];
+    const uniqueUsers = [...new Map(service.team.map((m) => [m.user.id, m.user])).values()];
 
-    for (const member of service.team) {
-      const { user } = member;
+    for (const user of uniqueUsers) {
       if (!user.phone) {
         results.push({ userId: user.id, name: user.name, status: 'skipped', reason: 'sin teléfono' });
         continue;
