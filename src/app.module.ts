@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { SongsModule } from './songs/songs.module';
 import { ServicesModule } from './services/services.module';
+import { RosterModule } from './roster/roster.module';
 import { FilesModule } from './files/files.module';
 import { SupportRequestsModule } from './support-requests/support-requests.module';
 import { NexoModule } from './nexo/nexo.module';
@@ -22,6 +23,7 @@ import { NexoWebhookModule } from './webhooks/nexo-webhook.module';
     UsersModule,
     SongsModule,
     ServicesModule,
+    RosterModule,
     FilesModule,
     SupportRequestsModule,
     NexoModule,

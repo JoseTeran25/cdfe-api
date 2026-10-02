@@ -132,16 +132,16 @@ export class ServicesController {
     return this.servicesService.addTeamMember(id, dto);
   }
 
-  @Delete(':id/team/:userId')
+  @Delete(':id/team/:memberId')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Remover músico del equipo del servicio' })
+  @ApiOperation({ summary: 'Remover una asignación (persona + rol) del equipo del servicio' })
   @ApiParam({ name: 'id', description: 'ID del servicio' })
-  @ApiParam({ name: 'userId', description: 'ID del músico' })
+  @ApiParam({ name: 'memberId', description: 'ID de la asignación (UserService)' })
   removeTeamMember(
     @Param('id') id: string,
-    @Param('userId') userId: string,
+    @Param('memberId') memberId: string,
   ) {
-    return this.servicesService.removeTeamMember(id, userId);
+    return this.servicesService.removeTeamMember(id, memberId);
   }
 
   // ─── Notificaciones ───────────────────────────────────
